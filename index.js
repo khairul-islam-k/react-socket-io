@@ -3,7 +3,7 @@ const http = require('http');
 const {Server} = require('socket.io');
 const app = express();
 const expressServer = http.createServer(app);
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 
 const io = new Server(expressServer,{
     cors: {
@@ -11,32 +11,39 @@ const io = new Server(expressServer,{
     }
 });
 
-io.on('connection', (socket) => {
-  console.log('a user connected',socket.id);
 
-  socket.on("joinRoom", async (username) => {
+io.on('connection', (socket) => {
+  //console.log('a user connected',socket.id);
+
+  socket.on("joinRoom", async ({username, room}) => {
     //console.log(username, 'is join the group');
 
+     // leave all other rooms first (optional, if user switches groups)
+    // const rooms = Array.from(socket.rooms);
+    // rooms.forEach(r => {
+    //   if (r !== socket.id) socket.leave(r);
+    // });
+
     // room e all message send
-    await socket.join('room');
+    await socket.join(room);
     // io.to('room').emit("roomNotice",username);
 
     //broadCast
-    socket.to('room').emit("roomNotice",username);
+    socket.to(room).emit("roomNotice",username);
 
-    socket.on("chatMessage",(msg) => {
-      io.to('room').emit("chatMessage",msg);
+    socket.on("chatMessage",({message , room}) => {
+      io.to(room).emit("chatMessage",message);
     })
 
-    socket.on("typing",(data) => {
+    socket.on("typing",({username, room}) => {
       // broadCast
-      socket.to('room').emit("typing",data);
+      socket.to(room).emit("typing",username);
     })
 
     
-    socket.on("stopTyping",(data) => {
+    socket.on("stopTyping",({username, room}) => {
       // broadCast
-      socket.to('room').emit("stopTyping",data);
+      socket.to(room).emit("stopTyping",username);
     })
 
   })
