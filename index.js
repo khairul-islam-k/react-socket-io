@@ -13,7 +13,9 @@ const io = new Server(expressServer,{
 
 
 io.on('connection', (socket) => {
-  //console.log('a user connected',socket.id);
+  // console.log('a user connected',socket.id);
+
+  let currentRoom = null;
 
   socket.on("joinRoom", async ({username, room}) => {
     //console.log(username, 'is join the group');
@@ -24,27 +26,41 @@ io.on('connection', (socket) => {
     //   if (r !== socket.id) socket.leave(r);
     // });
 
+    // Leave previous room
+    if (currentRoom) {
+      socket.leave(currentRoom);
+    }
+
     // room e all message send
     await socket.join(room);
+
+    currentRoom = room;
     // io.to('room').emit("roomNotice",username);
 
     //broadCast
     socket.to(room).emit("roomNotice",username);
 
     socket.on("chatMessage",({message , room}) => {
+      if (!currentRoom) return;
       io.to(room).emit("chatMessage",message);
     })
 
     socket.on("typing",({username, room}) => {
       // broadCast
+      if (!currentRoom) return;
       socket.to(room).emit("typing",username);
     })
 
     
     socket.on("stopTyping",({username, room}) => {
       // broadCast
+      if (!currentRoom) return;
       socket.to(room).emit("stopTyping",username);
     })
+
+    socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 
   })
 
